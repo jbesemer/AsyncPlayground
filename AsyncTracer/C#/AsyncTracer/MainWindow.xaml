@@ -1,0 +1,103 @@
+﻿<Window
+	xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+	xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+	xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="d" x:Class="AsyncTracer.MainWindow"
+	xmlns:System="clr-namespace:System;assembly=mscorlib"
+	xmlns:Shared="clr-namespace:SharedLibrary;assembly=SharedLibrary"
+	xmlns:local="clr-namespace:AsyncTracer;assembly=AsyncTracer"
+	Title="Control Flow Trace" 
+	Height="350" Width="592">
+	
+	<Window.Resources>
+		<ResourceDictionary>
+			<!-- Constants and Binding Converters -->
+
+			<System:Boolean x:Key="True">True</System:Boolean>
+			<System:Boolean x:Key="False">False</System:Boolean>
+			<!-- 
+			http://stackoverflow.com/questions/4997446/boolean-commandparameter-in-xaml
+			https://msdn.microsoft.com/en-us/library/ee792002(v=vs.110).aspx
+			-->
+
+			<Shared:BooleanInverter x:Key="BooleanInverter" />
+			<Shared:VisibleIfTrue x:Key="VisibleIfTrue" />
+			<Shared:VisibleIfFalse x:Key="VisibleIfFalse" />
+			<Shared:EnumToBooleanConverter x:Key="EnumToBooleanConverter"/>
+
+		</ResourceDictionary>
+	</Window.Resources>
+	
+	<Grid Background="Transparent">
+		<Grid.RowDefinitions>
+			<RowDefinition Height="auto"/>
+			<RowDefinition Height="auto"/>
+			<RowDefinition Height="*"/>
+		</Grid.RowDefinitions>
+		
+		<Grid.ContextMenu>
+			<ContextMenu>
+				<MenuItem Header="Start Wait" 
+					Command="{Binding ExportHistogramCommand}"
+					CommandParameter="{StaticResource True}"/>
+
+				<MenuItem Header="Fire Forget" 
+					Command="{Binding ExportHistogramCommand}"
+					CommandParameter="{StaticResource False}"/>
+
+				<MenuItem Header="Abort" Command="{Binding AbortActionCommand}"/>
+
+				<MenuItem Header="Ping" Command="{Binding PingCommand}"/>
+			</ContextMenu>
+		</Grid.ContextMenu>
+		
+		<WrapPanel Grid.Row="0" >
+			<Button x:Name="startButton" 
+					Click="startButton_Click" 
+					Content="Demo" 
+					Margin="6,10" 
+					Padding="4,0"
+					MinWidth="80" 
+					Height="24" />
+
+			<Button Command="{Binding ExportHistogramCommand}"
+					CommandParameter="{StaticResource True}"
+					Content="Wait" 
+					Margin="6,10" 
+					Padding="4,0"
+					MinWidth="80" 
+					Height="24" />
+
+			<Button Command="{Binding ExportHistogramCommand}"
+					CommandParameter="{StaticResource False}"
+					Content="Fire Forget" 
+					Margin="6,10" 
+					Padding="4,0"
+					MinWidth="80" 
+					Height="24" />
+
+			<Button Command="{Binding AbortActionCommand}"
+					Visibility="{Binding AbortActionIsAllowed, 
+						Converter={StaticResource VisibleIfTrue}}"
+					Content="Abort" 
+					Margin="6,10" 
+					Padding="4,0"
+					MinWidth="80" 
+					Height="24" />
+		</WrapPanel>
+		
+		<ProgressBar Grid.Row="1" x:Name="progressBar" 
+				Value="{Binding ProgressBarValue, FallbackValue=50}"
+				Height="4" />
+		
+		<TextBox Grid.Row="2" x:Name="resultsTextBox" 
+				 Background="Transparent"
+				 HorizontalAlignment="Left" 
+				 TextWrapping="Wrap" 
+				 VerticalAlignment="Bottom" 
+				 Width="576" Height="265" 
+				 FontFamily="Lucida Console" 
+				 FontSize="10" 
+				 VerticalScrollBarVisibility="Visible" 
+				 Grid.ColumnSpan="3"/>
+	</Grid>
+</Window>

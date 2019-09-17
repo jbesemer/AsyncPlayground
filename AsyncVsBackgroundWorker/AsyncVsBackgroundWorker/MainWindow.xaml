@@ -1,0 +1,30 @@
+﻿<Window x:Class="AsyncVsBackgroundWorker.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:AsyncVsBackgroundWorker"
+        mc:Ignorable="d"
+        Title="Async Task vs BackgroundWorker"
+        Width="400"
+        SizeToContent="Height"
+        ResizeMode="NoResize"
+        WindowStartupLocation="CenterScreen">
+    <StackPanel Margin="10">
+        <Button x:Name="AsyncTaskButton"
+                Content="Async Task"
+                Height="40"
+                Margin="0,0,0,10"
+                Click="AsyncTaskButton_Click" />
+        <ProgressBar x:Name="AsyncTaskProgressBar"
+                     Height="20"
+                     Margin="0,0,0,30" />
+        <Button x:Name="BackgroundWorkerButton"
+                Content="BackgroundWorker"
+                Height="40"
+                Margin="0,0,0,10"
+                Click="BackgroundWorkerButton_Click" />
+        <ProgressBar x:Name="BackgroundWorkerProgressBar"
+                     Height="20" />
+    </StackPanel>
+</Window>
