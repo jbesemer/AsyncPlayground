@@ -16,16 +16,38 @@ using System.Windows.Shapes;
 // Add a using directive and a reference for System.Net.Http;
 using System.Net.Http;
 
+using SharedLibrary;
+
 namespace AsyncTracer
 {
 	public partial class MainWindow : Window
+		, ILocationAndSize
 	{
 		public MainWindowVM MainWindowVM;
+		public SettingsStandard SettingsStandard;
 
 		public MainWindow()
 		{
 			InitializeComponent();
-			DataContext = MainWindowVM = new MainWindowVM( ResultsWriteline );
+			DataContext = MainWindowVM = new MainWindowVM( SettingsStandard, ResultsWriteline );
+			MainWindowVM.PropertyChanged += MainWindowVM_PropertyChanged;
+		}
+
+		private void MainWindowVM_PropertyChanged( object sender, System.ComponentModel.PropertyChangedEventArgs e )
+		{
+			if( e.PropertyName == "BusyIndicatorIsActive" )
+			{
+				Dispatcher.Invoke( 
+					(Action<bool>)BusyIndicatorIsActiveChanged, 
+					new object[] { MainWindowVM.BusyIndicatorIsActive } );
+			}
+		}
+
+		public void BusyIndicatorIsActiveChanged( bool value )
+		{
+			Mouse.OverrideCursor = value
+				? Cursors.Wait
+				: Mouse.OverrideCursor = null;
 		}
 
 		public void ResultsWriteline( string message )
@@ -35,6 +57,34 @@ namespace AsyncTracer
 				resultsTextBox.Text += "\n";
 			});
 		}
+
+		#region // Window Event Handlers //////////////////////////////////////
+
+		private void Window_Initialized( object sender, EventArgs e )
+		{
+			// load and initialize window here to avoid "two-step" window opening
+			SettingsStandard = new SettingsStandard( this );
+			SettingsStandard.Load();
+		}
+
+		private void Window_Loaded( object sender, RoutedEventArgs e )
+		{
+		}
+
+		private void Window_Closing( object sender, System.ComponentModel.CancelEventArgs e )
+		{
+			SettingsStandard.Save();
+		}
+
+		private void ClearMenuItem_Click( object sender, RoutedEventArgs e )
+		{
+			resultsTextBox.Clear();
+			progressBar.Value = 0;
+		}
+
+		#endregion
+
+		#region // Original Demo //////////////////////////////////////////////
 
 		private async void startButton_Click(object sender, RoutedEventArgs e)
 		{
@@ -92,33 +142,35 @@ namespace AsyncTracer
 
 			return urlContents.Length;
 		}
+
+		// Sample Output:
+
+		// ONE:   Entering startButton_Click.
+		//           Calling AccessTheWebAsync.
+
+		// TWO:   Entering AccessTheWebAsync.
+		//           Calling HttpClient.GetStringAsync.
+
+		// THREE: Back in AccessTheWebAsync.
+		//           Task getStringTask is started.
+		//           About to await getStringTask and return a Task<int> to startButton_Click.
+
+		// FOUR:  Back in startButton_Click.
+		//           Task getLengthTask is started.
+		//           About to await getLengthTask -- no caller to return to.
+
+		// FIVE:  Back in AccessTheWebAsync.
+		//           Task getStringTask is complete.
+		//           Processing the return statement.
+		//           Exiting from AccessTheWebAsync.
+
+		// SIX:   Back in startButton_Click.
+		//           Task getLengthTask is finished.
+		//           Result from AccessTheWebAsync is stored in contentLength.
+		//           About to display contentLength and exit.
+
+		// Length of the downloaded string: 33946.
+
+		#endregion
 	}
 }
-
-// Sample Output:
-
-// ONE:   Entering startButton_Click.
-//           Calling AccessTheWebAsync.
-
-// TWO:   Entering AccessTheWebAsync.
-//           Calling HttpClient.GetStringAsync.
-
-// THREE: Back in AccessTheWebAsync.
-//           Task getStringTask is started.
-//           About to await getStringTask and return a Task<int> to startButton_Click.
-
-// FOUR:  Back in startButton_Click.
-//           Task getLengthTask is started.
-//           About to await getLengthTask -- no caller to return to.
-
-// FIVE:  Back in AccessTheWebAsync.
-//           Task getStringTask is complete.
-//           Processing the return statement.
-//           Exiting from AccessTheWebAsync.
-
-// SIX:   Back in startButton_Click.
-//           Task getLengthTask is finished.
-//           Result from AccessTheWebAsync is stored in contentLength.
-//           About to display contentLength and exit.
-
-// Length of the downloaded string: 33946.

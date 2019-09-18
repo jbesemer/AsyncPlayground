@@ -6,6 +6,9 @@
 	xmlns:Shared="clr-namespace:SharedLibrary;assembly=SharedLibrary"
 	xmlns:local="clr-namespace:AsyncTracer;assembly=AsyncTracer"
 	Title="Control Flow Trace" 
+	Initialized="Window_Initialized"
+	Loaded="Window_Loaded"
+	Closing="Window_Closing"
 	Height="350" Width="592">
 	
 	<Window.Resources>
@@ -47,48 +50,76 @@
 				<MenuItem Header="Abort" Command="{Binding AbortActionCommand}"/>
 
 				<MenuItem Header="Ping" Command="{Binding PingCommand}"/>
+
+				<MenuItem Header="Clear" Click="ClearMenuItem_Click"/>
 			</ContextMenu>
 		</Grid.ContextMenu>
 		
-		<WrapPanel Grid.Row="0" >
+		<WrapPanel Grid.Row="0" 
+				VerticalAlignment="Center">
+			<!-- FML: wrap panel won't align contents:
+			https://stackoverflow.com/questions/806777/wpf-how-can-i-center-all-items-in-a-wrappanel
+			https://docs.microsoft.com/en-us/previous-versions/ms771773(v=vs.100)?redirectedfrom=MSDN
+			-->
+			
 			<Button x:Name="startButton" 
-					Click="startButton_Click" 
-					Content="Demo" 
-					Margin="6,10" 
-					Padding="4,0"
-					MinWidth="80" 
-					Height="24" />
+				Click="startButton_Click" 
+				Content="Demo" 
+				VerticalAlignment="Center"
+				Margin="6,10" 
+				Padding="4,0"
+				MinWidth="80" 
+				Height="24" />
 
 			<Button Command="{Binding ExportHistogramCommand}"
-					CommandParameter="{StaticResource True}"
-					Content="Wait" 
-					Margin="6,10" 
-					Padding="4,0"
-					MinWidth="80" 
-					Height="24" />
+				CommandParameter="{StaticResource True}"
+				Content="Export" 
+				VerticalAlignment="Center"
+				Margin="6,10" 
+				Padding="4,0"
+				MinWidth="80" 
+				Height="24" />
 
 			<Button Command="{Binding ExportHistogramCommand}"
-					CommandParameter="{StaticResource False}"
-					Content="Fire Forget" 
-					Margin="6,10" 
-					Padding="4,0"
-					MinWidth="80" 
-					Height="24" />
+				CommandParameter="{StaticResource False}"
+				Content="Fire Forget" 
+				VerticalAlignment="Center"
+				Margin="6,10" 
+				Padding="4,0"
+				MinWidth="80" 
+				Height="24" />
 
 			<Button Command="{Binding AbortActionCommand}"
-					Visibility="{Binding AbortActionIsAllowed, 
-						Converter={StaticResource VisibleIfTrue}}"
-					Content="Abort" 
-					Margin="6,10" 
-					Padding="4,0"
-					MinWidth="80" 
-					Height="24" />
+				Visibility="{Binding AbortActionIsAllowed, 
+					Converter={StaticResource VisibleIfTrue}}"
+				Content="Abort" 
+				VerticalAlignment="Center"
+				Margin="6,10" 
+				Padding="4,0"
+				MinWidth="80" 
+				Height="24" />
+
+			<CheckBox Content="Throw"
+				IsChecked="{Binding ThrowIsChecked}"
+				VerticalAlignment="Center"
+				Margin="8,10,0,0" 
+				Padding="4,0"
+				MinWidth="80" 
+				Height="24" />
+			
+			<CheckBox Content="Timeout"
+				IsChecked="{Binding TimeoutIsChecked}"
+				VerticalAlignment="Center"
+				Margin="8,10,0,0" 
+				Padding="4,0"
+				MinWidth="80" 
+				Height="24" />
 		</WrapPanel>
 		
 		<ProgressBar Grid.Row="1" x:Name="progressBar" 
 				Value="{Binding ProgressBarValue, FallbackValue=50}"
 				Height="4" />
-		
+
 		<TextBox Grid.Row="2" x:Name="resultsTextBox" 
 				 Background="Transparent"
 				 HorizontalAlignment="Left" 
@@ -98,6 +129,34 @@
 				 FontFamily="Lucida Console" 
 				 FontSize="10" 
 				 VerticalScrollBarVisibility="Visible" 
-				 Grid.ColumnSpan="3"/>
+				 Grid.ColumnSpan="3">
+			<TextBox.ContextMenu>
+				<ContextMenu>
+					<MenuItem Command="ApplicationCommands.Copy" />
+					<MenuItem Command="ApplicationCommands.Cut" />
+					<MenuItem Command="ApplicationCommands.SelectAll" />
+					<MenuItem Header="Clear" Click="ClearMenuItem_Click"/>
+				</ContextMenu>
+			</TextBox.ContextMenu>
+		</TextBox>
+
+		<!-- Busy Indicator -->
+		<Border Grid.RowSpan="3"
+				Visibility="{Binding BusyIndicatorIsActive,
+					Converter={StaticResource VisibleIfTrue}}"
+				VerticalAlignment="Center"
+				HorizontalAlignment="Center"
+				BorderThickness="4" 
+				Padding="4,2"
+				BorderBrush="DarkGreen"
+				Background="LightGray">
+			<TextBlock 
+				Text="{Binding BusyIndicatorText, FallbackValue=Working}"
+				VerticalAlignment="Center"
+				HorizontalAlignment="Center"
+				Foreground="Red"
+				FontSize="24">
+			</TextBlock>
+		</Border>
 	</Grid>
 </Window>
