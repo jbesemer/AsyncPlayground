@@ -64,6 +64,8 @@
 			
 			<Button x:Name="startButton" 
 				Click="startButton_Click" 
+				IsEnabled="{Binding BusyIndicatorIsActive,
+					Converter={StaticResource BooleanInverter}}"
 				Content="Demo" 
 				VerticalAlignment="Center"
 				Margin="6,10" 
@@ -101,6 +103,8 @@
 
 			<CheckBox Content="Throw"
 				IsChecked="{Binding ThrowIsChecked}"
+				IsEnabled="{Binding BusyIndicatorIsActive,
+					Converter={StaticResource BooleanInverter}}"
 				VerticalAlignment="Center"
 				Margin="8,10,0,0" 
 				Padding="4,0"
@@ -109,6 +113,8 @@
 			
 			<CheckBox Content="Timeout"
 				IsChecked="{Binding TimeoutIsChecked}"
+				IsEnabled="{Binding BusyIndicatorIsActive,
+					Converter={StaticResource BooleanInverter}}"
 				VerticalAlignment="Center"
 				Margin="8,10,0,0" 
 				Padding="4,0"
@@ -121,15 +127,13 @@
 				Height="4" />
 
 		<TextBox Grid.Row="2" x:Name="resultsTextBox" 
+				 VerticalAlignment="Stretch" 
+				 HorizontalAlignment="Stretch" 
 				 Background="Transparent"
-				 HorizontalAlignment="Left" 
 				 TextWrapping="Wrap" 
-				 VerticalAlignment="Bottom" 
-				 Width="576" Height="265" 
 				 FontFamily="Lucida Console" 
 				 FontSize="10" 
-				 VerticalScrollBarVisibility="Visible" 
-				 Grid.ColumnSpan="3">
+				 VerticalScrollBarVisibility="Visible" >
 			<TextBox.ContextMenu>
 				<ContextMenu>
 					<MenuItem Command="ApplicationCommands.Copy" />
@@ -140,7 +144,7 @@
 			</TextBox.ContextMenu>
 		</TextBox>
 
-		<!-- Busy Indicator -->
+		<!-- Busy Indicator (overlay to entire window) -->
 		<Border Grid.RowSpan="3"
 				Visibility="{Binding BusyIndicatorIsActive,
 					Converter={StaticResource VisibleIfTrue}}"

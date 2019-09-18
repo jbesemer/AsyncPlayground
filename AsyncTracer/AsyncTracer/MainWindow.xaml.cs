@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -29,35 +30,36 @@ namespace AsyncTracer
 		public MainWindow()
 		{
 			InitializeComponent();
-			DataContext = MainWindowVM = new MainWindowVM( SettingsStandard, ResultsWriteline );
-			MainWindowVM.PropertyChanged += MainWindowVM_PropertyChanged;
+
+			DataContext = MainWindowVM = new MainWindowVM( SettingsStandard );
+
+			MainWindowVM.BusyIndicatorChanged 
+				+= (value) => Dispatcher.Invoke(
+					() => IndicateBusy( value ) );
+
+			MainWindowVM.TraceWritten 
+				+= (message) => Dispatcher.Invoke(
+					() => ResultsWriteline( message ) );
 		}
 
-		private void MainWindowVM_PropertyChanged( object sender, System.ComponentModel.PropertyChangedEventArgs e )
-		{
-			if( e.PropertyName == "BusyIndicatorIsActive" )
-			{
-				Dispatcher.Invoke( 
-					(Action<bool>)BusyIndicatorIsActiveChanged, 
-					new object[] { MainWindowVM.BusyIndicatorIsActive } );
-			}
-		}
+		#region // VM Event Handlers //////////////////////////////////////////
 
-		public void BusyIndicatorIsActiveChanged( bool value )
+		public void IndicateBusy( bool value )
 		{
 			Mouse.OverrideCursor = value
 				? Cursors.Wait
 				: Mouse.OverrideCursor = null;
+			CommandManager.InvalidateRequerySuggested();
 		}
 
 		public void ResultsWriteline( string message )
 		{
-			Dispatcher.Invoke( () => { 
-				resultsTextBox.Text += message;
-				resultsTextBox.Text += "\n";
-				//resultsTextBox.ScrollToEnd();
-			} );
+			resultsTextBox.Text += message;
+			resultsTextBox.Text += "\n";
+			resultsTextBox.ScrollToEnd();
 		}
+
+		#endregion
 
 		#region // Window Event Handlers //////////////////////////////////////
 

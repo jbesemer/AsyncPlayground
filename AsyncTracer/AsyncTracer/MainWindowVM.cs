@@ -74,14 +74,28 @@ namespace AsyncTracer
 
 		#endregion
 
-		public MainWindowVM( SettingsStandard settings, Action<string> resultsWriteline )
+		public MainWindowVM( SettingsStandard settings )
 		{
 			SettingsStandard = settings;
-			ResultsWriteline = resultsWriteline;
 		}
 
+		#region // Settings and Events ////////////////////////////////////////
+
 		public SettingsStandard SettingsStandard { get; protected set; }
-		Action<string> ResultsWriteline;
+
+		public event Action<bool> BusyIndicatorChanged;
+		protected void OnBusyIndicatorChanged( bool busy )
+		{
+			BusyIndicatorChanged?.Invoke( busy );
+		}
+
+		public event Action<string> TraceWritten;
+		protected void ResultsWriteline( string message )
+		{
+			TraceWritten?.Invoke( message );
+		}
+
+		#endregion
 
 		#region // Export Simulation //////////////////////////////////////////
 
@@ -95,6 +109,7 @@ namespace AsyncTracer
 						= new RelayCommand<bool>(
 							( wait ) => ExportHistorgram( wait ),
 							( wait ) => !BusyIndicatorIsActive ) );
+							//) );
 			}
 		}
 
@@ -117,7 +132,8 @@ namespace AsyncTracer
 					Task exportTask = PretendExportHistogram( prog, ct );
 					ResultsWriteline( "Task is running..." );
 
-					// now that it's all on background, and exceptions are caught, no reason NOT to wait
+					// now that it's all on background and exceptions are caught => no reason NOT to wait.
+					// furthermore, if you don't wait the busy indicator goes off before task completes.
 					if( waitForCompletion )
 					{
 						ResultsWriteline( "Waiting for Task to complete..." );
@@ -161,6 +177,10 @@ namespace AsyncTracer
 		{
 			switch( progress )
 			{
+			case -2:
+				AbortActionIsAllowed = false;
+				ResultsWriteline( "Export Canceled" );
+				return;
 			case -1:
 				AbortActionIsAllowed = false;
 				ResultsWriteline( "Export Complete" );
@@ -176,7 +196,6 @@ namespace AsyncTracer
 
 		public const int Iterations = 100;
 		public const int Delay = 50;
-		public const long TicksPerMillisec = 10000;
 		public const int ExpectedRuntime_ms = Iterations * Delay;
 		public const int ThrowThreshold = 40;
 
@@ -278,7 +297,14 @@ namespace AsyncTracer
 		public bool BusyIndicatorIsActive
 		{
 			get { return _BusyIndicatorIsActive; }
-			set { OnPropertyChanged( ref _BusyIndicatorIsActive, value ); }
+			set
+			{
+				if( OnPropertyChanged( ref _BusyIndicatorIsActive, value ) )
+				{
+					OnBusyIndicatorChanged( value );
+					ResultsWriteline( $"BusyIndicatorIsActive -> {value}" );
+				}
+			}
 		}
 
 		public string _BusyIndicatorText;
