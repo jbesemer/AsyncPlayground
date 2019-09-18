@@ -5,7 +5,7 @@ VisualStudioVersion = 15.0.27703.2035
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AsyncTracer", "AsyncTracer\AsyncTracer.csproj", "{DB7ECECD-928D-4070-881A-CF63F6211A02}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharedLibrary", "..\..\..\SharedLibrary\SharedLibrary\SharedLibrary.csproj", "{03AB3314-C3C1-4F3B-B336-DEDDF6DECE6F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharedLibrary", "..\..\SharedLibrary\SharedLibrary\SharedLibrary.csproj", "{03AB3314-C3C1-4F3B-B336-DEDDF6DECE6F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

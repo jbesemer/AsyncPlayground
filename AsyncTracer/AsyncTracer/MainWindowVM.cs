@@ -93,7 +93,8 @@ namespace AsyncTracer
 				return _ExportHistogramCommand
 					?? ( _ExportHistogramCommand
 						= new RelayCommand<bool>(
-							(wait) => ExportHistorgram( wait ) ) );
+							( wait ) => ExportHistorgram( wait ),
+							( wait ) => !BusyIndicatorIsActive ) );
 			}
 		}
 

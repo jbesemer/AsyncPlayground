@@ -55,7 +55,8 @@ namespace AsyncTracer
 			Dispatcher.Invoke( () => { 
 				resultsTextBox.Text += message;
 				resultsTextBox.Text += "\n";
-			});
+				//resultsTextBox.ScrollToEnd();
+			} );
 		}
 
 		#region // Window Event Handlers //////////////////////////////////////

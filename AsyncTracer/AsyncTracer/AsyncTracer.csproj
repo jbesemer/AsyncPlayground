@@ -96,7 +96,7 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\..\SharedLibrary\SharedLibrary\SharedLibrary.csproj">
+    <ProjectReference Include="..\..\..\SharedLibrary\SharedLibrary\SharedLibrary.csproj">
       <Project>{03ab3314-c3c1-4f3b-b336-deddf6dece6f}</Project>
       <Name>SharedLibrary</Name>
     </ProjectReference>
