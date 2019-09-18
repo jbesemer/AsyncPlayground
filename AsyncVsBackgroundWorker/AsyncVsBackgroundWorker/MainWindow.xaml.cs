@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Input;
 
 namespace AsyncVsBackgroundWorker
 {
@@ -14,6 +15,9 @@ namespace AsyncVsBackgroundWorker
             InitializeComponent();
         }
 
+		public const int Count = 10;
+		public const int Delay = 100;
+
         private async void AsyncTaskButton_Click(object sender, RoutedEventArgs e)
         {
             IProgress<int> progress = new Progress<int>(percentCompleted =>
@@ -22,22 +26,26 @@ namespace AsyncVsBackgroundWorker
             });
 
             AsyncTaskButton.IsEnabled = false;
-            await Task.Run(async () =>
+			Mouse.OverrideCursor = Cursors.Wait;
+            await Task.Run( () =>
             {
                 progress.Report(0);
-                foreach (var i in Enumerable.Range(1, 4))
+                foreach (var i in Enumerable.Range(1, Count ) )
                 {
-                    await Task.Delay(1000);
-                    progress.Report(i * 25);
+					// await Task.Delay(Delay);
+					Thread.Sleep( Delay );
+					progress.Report(i * 100 / Count );
                 }
             });
-            AsyncTaskButton.IsEnabled = true;
+			Mouse.OverrideCursor = null;
+			AsyncTaskButton.IsEnabled = true;
         }
 
         private void BackgroundWorkerButton_Click(object sender, RoutedEventArgs e)
         {
             BackgroundWorkerButton.IsEnabled = false;
-            var backgroundWorker = new BackgroundWorker()
+			Mouse.OverrideCursor = Cursors.Wait;
+			var backgroundWorker = new BackgroundWorker()
             {
                 WorkerReportsProgress = true
             };
@@ -45,10 +53,10 @@ namespace AsyncVsBackgroundWorker
             backgroundWorker.DoWork += (s, args) =>
             {
                 backgroundWorker.ReportProgress(0);
-                foreach (var i in Enumerable.Range(1, 4))
+                foreach (var i in Enumerable.Range(1, Count ) )
                 {
-                    Thread.Sleep(1000);
-                    backgroundWorker.ReportProgress(i * 25);
+                    Thread.Sleep( Delay );
+                    backgroundWorker.ReportProgress(i * 100/Count );
                 }
             };
 
@@ -59,7 +67,8 @@ namespace AsyncVsBackgroundWorker
 
             backgroundWorker.RunWorkerCompleted += (s, args) =>
             {
-                BackgroundWorkerButton.IsEnabled = true;
+				Mouse.OverrideCursor = null;
+				BackgroundWorkerButton.IsEnabled = true;
             };
 
             backgroundWorker.RunWorkerAsync();
