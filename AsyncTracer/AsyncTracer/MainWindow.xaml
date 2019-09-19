@@ -64,7 +64,7 @@
 			
 			<Button x:Name="startButton" 
 				Click="startButton_Click" 
-				IsEnabled="{Binding BusyIndicatorIsActive,
+				IsEnabled="{Binding IsRunning,
 					Converter={StaticResource BooleanInverter}}"
 				Content="Demo" 
 				VerticalAlignment="Center"
@@ -104,7 +104,7 @@
 
 			<CheckBox Content="Throw"
 				IsChecked="{Binding ThrowIsChecked}"
-				IsEnabled="{Binding BusyIndicatorIsActive,
+				IsEnabled="{Binding IsRunning,
 					Converter={StaticResource BooleanInverter}}"
 				VerticalAlignment="Center"
 				Margin="8,10,0,0" 
@@ -114,7 +114,7 @@
 
 			<CheckBox Content="No Catch"
 				IsChecked="{Binding NoCatchIsChecked}"
-				IsEnabled="{Binding BusyIndicatorIsActive,
+				IsEnabled="{Binding IsRunning,
 					Converter={StaticResource BooleanInverter}}"
 				VerticalAlignment="Center"
 				Margin="8,10,0,0" 
@@ -124,7 +124,7 @@
 
 			<CheckBox Content="No Wait"
 				IsChecked="{Binding NoWaitIsChecked}"
-				IsEnabled="{Binding BusyIndicatorIsActive,
+				IsEnabled="{Binding IsRunning,
 					Converter={StaticResource BooleanInverter}}"
 				VerticalAlignment="Center"
 				Margin="8,10,0,0" 
@@ -134,7 +134,7 @@
 
 			<CheckBox Content="Timeout"
 				IsChecked="{Binding TimeoutIsChecked}"
-				IsEnabled="{Binding BusyIndicatorIsActive,
+				IsEnabled="{Binding IsRunning,
 					Converter={StaticResource BooleanInverter}}"
 				VerticalAlignment="Center"
 				Margin="8,10,0,0" 

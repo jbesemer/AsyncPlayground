@@ -33,7 +33,7 @@ namespace AsyncTracer
 
 			DataContext = MainWindowVM = new MainWindowVM( SettingsStandard );
 
-			MainWindowVM.BusyIndicatorChanged += IndicateBusy;
+			MainWindowVM.IsRunningChanged += IndicateBusy;
 			MainWindowVM.TraceWritten += ResultsWriteline;
 
 			AppDomain.CurrentDomain.UnhandledException

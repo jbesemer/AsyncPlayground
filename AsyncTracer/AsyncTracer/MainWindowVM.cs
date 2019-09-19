@@ -83,10 +83,10 @@ namespace AsyncTracer
 
 		#region // Events /////////////////////////////////////////////////////
 
-		public event Action<bool> BusyIndicatorChanged;
-		protected void OnBusyIndicatorChanged( bool busy )
+		public event Action<bool> IsRunningChanged;
+		protected void OnIsRunningChanged( bool busy )
 		{
-			BusyIndicatorChanged?.Invoke( busy );
+			IsRunningChanged?.Invoke( busy );
 		}
 
 		public event Action<string> TraceWritten;
@@ -108,7 +108,7 @@ namespace AsyncTracer
 					?? ( _ExportHistogramCommand
 						= new RelayCommand<bool>(
 							( wait ) => ExportHistorgram( wait ),
-							( wait ) => !BusyIndicatorIsActive ) );
+							( wait ) => !IsRunning ) );
 			}
 		}
 
@@ -119,29 +119,21 @@ namespace AsyncTracer
 			// fire/forget; UI continues running while this Task runs on background thread
 			Task.Run( () =>
 			{
-				try
+				if( NoCatchIsChecked )
 				{
-					if( NoCatchIsChecked )
-					{
-						ExportHistorgramNoCatch();
-						// after about a minute, this exception is raised:
-						// TaskScheduler_UnobservedTaskException AggregateException 
-						//		A Task's exception(s) were not observed either by Waiting on the Task 
-						//		or accessing its Exception property. As a result, the 
-						//		unobserved exception was rethrown by the finalizer thread.
-						// AggregateException One or more errors occurred.
-						//		IndexOutOfRangeException burp
+					ExportHistorgramNoCatch();
+					// after about a minute, this exception is raised:
+					// TaskScheduler_UnobservedTaskException AggregateException 
+					//		A Task's exception(s) were not observed either by Waiting on the Task 
+					//		or accessing its Exception property. As a result, the 
+					//		unobserved exception was rethrown by the finalizer thread.
+					// AggregateException One or more errors occurred.
+					//		IndexOutOfRangeException burp
 
-					}
-					else
-					{
-						ExportHistorgramCatch();
-					}
 				}
-				finally
+				else
 				{
-					BusyIndicatorIsActive = false;
-					ResultsWriteline( $"Task exiting" );
+					ExportHistorgramCatch();
 				}
 			} );
 		}
@@ -178,8 +170,6 @@ namespace AsyncTracer
 			Progress<int> prog = new Progress<int>( SetProgress );
 			CancellationTokenSource = new CancellationTokenSource();
 			CancellationToken ct = CancellationTokenSource.Token;
-			BusyIndicatorIsActive = true;
-			BusyIndicatorText = "Exporting Histogram";
 
 			ResultsWriteline( $"Launching task..." );
 			Task exportTask = PretendExportHistogram( prog, ct );
@@ -213,53 +203,49 @@ namespace AsyncTracer
 		{
 			return Task.Run( () =>
 			{
-				IsRunningChecked = true;
+				BusyIndicatorText = "Exporting Histogram";
+				IsRunning = true;
 
-				for( int i = 0; i < Iterations; i++ )
+				try
 				{
-					if( token.IsCancellationRequested )
+					for( int i = 0; i < Iterations; i++ )
 					{
-						prog.Report( -2 );
-						return;
+						if( token.IsCancellationRequested )
+						{
+							ExportCanceled();
+							return;
+						}
+						token.ThrowIfCancellationRequested();
+
+						if( ThrowIsChecked && i > ThrowThreshold )
+						{
+							ResultsWriteline( "Throwing IndexOutOfRangeException..." );
+							throw new IndexOutOfRangeException( "burp" );
+						}
+
+						prog.Report( i );
+
+						// Pretend work
+						//Task.Delay( 200 );
+						Thread.Sleep( Delay );
 					}
-					token.ThrowIfCancellationRequested();
-
-					if( ThrowIsChecked && i > ThrowThreshold )
-					{
-						ResultsWriteline( "Throwing IndexOutOfRangeException..." );
-						throw new IndexOutOfRangeException( "burp" );
-					}
-
-					prog.Report( i );
-
-					// Pretend work
-					//Task.Delay( 200 );
-					Thread.Sleep( Delay );
 				}
-
-				IsRunningChecked = false;
+				finally
+				{
+					IsRunning = false;
+				}
 			}, token );
 		}
 
 		public void SetProgress( int progress )
 		{
-			switch( progress )
-			{
-			case -2:
-				AbortActionIsAllowed = false;
-				ResultsWriteline( "Export Canceled" );
-				return;
-			case -1:
-				AbortActionIsAllowed = false;
-				ResultsWriteline( "Export Complete" );
-				return;
-			case 0:
-				AbortActionIsAllowed = true;
-				ResultsWriteline( "Starting Export" );
-				break;
-			}
-
 			ProgressBarValue = (double)progress;
+		}
+
+		public void ExportCanceled()
+		{
+			ResultsWriteline( "Export Canceled" );
+			IsRunning = false;
 		}
 
 		#endregion
@@ -311,15 +297,27 @@ namespace AsyncTracer
 
 		#region // Checkboxes & Indicators ////////////////////////////////////
 
-		public bool _IsRunningChecked;
-		public bool IsRunningChecked
+		public bool _IsRunning;
+		public bool IsRunning
 		{
-			get { return _IsRunningChecked; }
+			get { return _IsRunning; }
 			set
 			{
-				if( OnPropertyChanged( ref _IsRunningChecked, value ) )
+				if( OnPropertyChanged( ref _IsRunning, value ) )
 				{
-
+					if( value )
+					{
+						AbortActionIsAllowed = true;
+						BusyIndicatorIsActive = true;
+						ResultsWriteline( "Starting Export" );
+					}
+					else
+					{
+						AbortActionIsAllowed = false;
+						BusyIndicatorIsActive = false;
+						ResultsWriteline( "Export Complete" );
+					}
+					OnIsRunningChanged( value );
 				}
 			}
 		}
@@ -366,14 +364,7 @@ namespace AsyncTracer
 		public bool BusyIndicatorIsActive
 		{
 			get { return _BusyIndicatorIsActive; }
-			set
-			{
-				if( OnPropertyChanged( ref _BusyIndicatorIsActive, value ) )
-				{
-					OnBusyIndicatorChanged( value );
-					ResultsWriteline( $"BusyIndicatorIsActive -> {value}" );
-				}
-			}
+			set { OnPropertyChanged( ref _BusyIndicatorIsActive, value ); }
 		}
 
 		public string _BusyIndicatorText;
