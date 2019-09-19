@@ -33,30 +33,84 @@ namespace AsyncTracer
 
 			DataContext = MainWindowVM = new MainWindowVM( SettingsStandard );
 
-			MainWindowVM.BusyIndicatorChanged 
-				+= (value) => Dispatcher.Invoke(
-					() => IndicateBusy( value ) );
+			MainWindowVM.BusyIndicatorChanged += IndicateBusy;
+			MainWindowVM.TraceWritten += ResultsWriteline;
 
-			MainWindowVM.TraceWritten 
-				+= (message) => Dispatcher.Invoke(
-					() => ResultsWriteline( message ) );
+			AppDomain.CurrentDomain.UnhandledException
+				+= CurrentDomain_UnhandledException;
+
+			System.Threading.Tasks.TaskScheduler.UnobservedTaskException
+				+= TaskScheduler_UnobservedTaskException;
+
+			Application.Current.DispatcherUnhandledException
+				+= Current_DispatcherUnhandledException;
+
 		}
+
+		#region // Unhandled Exceptions ///////////////////////////////////////
+
+		private void Current_DispatcherUnhandledException( object sender, System.Windows.Threading.DispatcherUnhandledExceptionEventArgs e )
+		{
+			var ex = e.Exception;
+			ResultsWriteline( $">>> Current_DispatcherUnhandledException {DecodeException( ex )}" );
+		}
+
+		private void TaskScheduler_UnobservedTaskException( object sender, UnobservedTaskExceptionEventArgs e )
+		{
+			var ex = e.Exception;
+			ResultsWriteline( $">>> TaskScheduler_UnobservedTaskException {DecodeException( ex )}" );
+		}
+
+		private void CurrentDomain_UnhandledException( object sender, UnhandledExceptionEventArgs e )
+		{
+			var ex = e.ExceptionObject as Exception;
+			ResultsWriteline( $">>> CurrentDomain_UnhandledException {DecodeException( ex )}" );
+		}
+
+		public string DecodeException( Exception ex )
+		{
+			StringBuilder sb = new StringBuilder();
+			DecodeException( ex, sb );
+			return sb.ToString();
+		}
+
+		public void DecodeException( Exception ex, StringBuilder sb, string indent="" )
+		{
+			sb.AppendLine( $"{indent}{ex.GetType().Name} {ex.Message}" );
+
+			if( ex is AggregateException aex )
+			{
+				indent += "    ";
+				foreach( var ex2 in aex.InnerExceptions )
+				{
+					DecodeException( ex2, sb, indent );
+				}
+			}
+		}
+
+		#endregion
 
 		#region // VM Event Handlers //////////////////////////////////////////
 
 		public void IndicateBusy( bool value )
 		{
-			Mouse.OverrideCursor = value
-				? Cursors.Wait
-				: Mouse.OverrideCursor = null;
-			CommandManager.InvalidateRequerySuggested();
+			Dispatcher.Invoke( () =>
+			{
+				Mouse.OverrideCursor = value
+					? Cursors.Wait
+					: Mouse.OverrideCursor = null;
+				CommandManager.InvalidateRequerySuggested();
+			} );
 		}
 
 		public void ResultsWriteline( string message )
 		{
-			resultsTextBox.Text += message;
-			resultsTextBox.Text += "\n";
-			resultsTextBox.ScrollToEnd();
+			Dispatcher.Invoke( () =>
+			{
+				resultsTextBox.Text += message;
+				resultsTextBox.Text += "\n";
+				resultsTextBox.ScrollToEnd();
+			} );
 		}
 
 		#endregion

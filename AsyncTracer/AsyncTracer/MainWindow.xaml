@@ -9,7 +9,7 @@
 	Initialized="Window_Initialized"
 	Loaded="Window_Loaded"
 	Closing="Window_Closing"
-	Height="350" Width="592">
+	Height="350" Width="640">
 	
 	<Window.Resources>
 		<ResourceDictionary>
@@ -82,7 +82,8 @@
 				MinWidth="80" 
 				Height="24" />
 
-			<Button Command="{Binding ExportHistogramCommand}"
+			<Button Visibility="Collapsed"
+				Command="{Binding ExportHistogramCommand}"
 				CommandParameter="{StaticResource False}"
 				Content="Fire Forget" 
 				VerticalAlignment="Center"
@@ -108,9 +109,29 @@
 				VerticalAlignment="Center"
 				Margin="8,10,0,0" 
 				Padding="4,0"
-				MinWidth="80" 
+				MinWidth="60" 
 				Height="24" />
-			
+
+			<CheckBox Content="No Catch"
+				IsChecked="{Binding NoCatchIsChecked}"
+				IsEnabled="{Binding BusyIndicatorIsActive,
+					Converter={StaticResource BooleanInverter}}"
+				VerticalAlignment="Center"
+				Margin="8,10,0,0" 
+				Padding="4,0"
+				MinWidth="60" 
+				Height="24" />
+
+			<CheckBox Content="No Wait"
+				IsChecked="{Binding NoWaitIsChecked}"
+				IsEnabled="{Binding BusyIndicatorIsActive,
+					Converter={StaticResource BooleanInverter}}"
+				VerticalAlignment="Center"
+				Margin="8,10,0,0" 
+				Padding="4,0"
+				MinWidth="60" 
+				Height="24" />
+
 			<CheckBox Content="Timeout"
 				IsChecked="{Binding TimeoutIsChecked}"
 				IsEnabled="{Binding BusyIndicatorIsActive,
@@ -118,7 +139,7 @@
 				VerticalAlignment="Center"
 				Margin="8,10,0,0" 
 				Padding="4,0"
-				MinWidth="80" 
+				MinWidth="60" 
 				Height="24" />
 		</WrapPanel>
 		

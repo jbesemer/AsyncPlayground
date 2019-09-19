@@ -115,55 +115,29 @@ namespace AsyncTracer
 
 		private CancellationTokenSource CancellationTokenSource;
 
-		public void ExportHistorgram( bool waitForCompletion )
+		public void ExportHistorgram( bool wait )
 		{
 			// fire/forget; UI continues running while this Task runs on background thread
 			Task.Run( () =>
 			{
 				try
 				{
-					Progress<int> prog = new Progress<int>( SetProgress );
-					CancellationTokenSource = new CancellationTokenSource();
-					CancellationToken ct = CancellationTokenSource.Token;
-					BusyIndicatorIsActive = true;
-					BusyIndicatorText = "Exporting Histogram";
-
-					ResultsWriteline( $"Launching task..." );
-					Task exportTask = PretendExportHistogram( prog, ct );
-					ResultsWriteline( "Task is running..." );
-
-					// now that it's all on background and exceptions are caught => no reason NOT to wait.
-					// furthermore, if you don't wait the busy indicator goes off before task completes.
-					if( waitForCompletion )
+					if( NoCatchIsChecked )
 					{
-						ResultsWriteline( "Waiting for Task to complete..." );
-							double factor = TimeoutIsChecked ? 0.25 : 1.25;
-							int expected = (int)( ExpectedRuntime_ms * factor );
-							var ok = exportTask.Wait( expected, ct );
-							ResultsWriteline( $"Task completes...{( ok ? "" : "Timeout" )}" );
-							if( !ok )
-							{
-								// Wait timed-out, not the task itself;
-								// Task is still running; so we need to snuff it
-								CancellationTokenSource.Cancel();
-							}
+						ExportHistorgramNoCatch();
+						// after about a minute, this exception is raised:
+						// TaskScheduler_UnobservedTaskException AggregateException 
+						//		A Task's exception(s) were not observed either by Waiting on the Task 
+						//		or accessing its Exception property. As a result, the 
+						//		unobserved exception was rethrown by the finalizer thread.
+						// AggregateException One or more errors occurred.
+						//		IndexOutOfRangeException burp
+
 					}
-				}
-				catch( OperationCanceledException )
-				{
-					ResultsWriteline( $"Task CANCELED" );
-				}
-				catch( AggregateException aex )
-				{
-					ResultsWriteline( $"Task AggregateException" );
-					foreach( var ex in aex.InnerExceptions )
+					else
 					{
-						ResultsWriteline( $"    Exception: {ex.GetType().Name}: \n\t{ex.Message}" );
+						ExportHistorgramCatch();
 					}
-				}
-				catch( Exception ex )
-				{
-					ResultsWriteline( $"Task Exception: {ex.GetType().Name}: \n\t{ex.Message}" );
 				}
 				finally
 				{
@@ -171,6 +145,64 @@ namespace AsyncTracer
 					ResultsWriteline( $"Task exiting" );
 				}
 			} );
+		}
+
+		public void ExportHistorgramCatch()
+		{
+			try
+			{
+				ExportHistorgramNoCatch();
+			}
+			catch( OperationCanceledException )
+			{
+				ResultsWriteline( $"Task CANCELED" );
+			}
+			catch( AggregateException aex )
+			{
+				ResultsWriteline( $"Task AggregateException" );
+				foreach( var ex in aex.InnerExceptions )
+				{
+					ResultsWriteline( $"    Exception: {ex.GetType().Name}: \n\t{ex.Message}" );
+				}
+			}
+			catch( Exception ex )
+			{
+				ResultsWriteline( $"Task Exception: {ex.GetType().Name}: \n\t{ex.Message}" );
+			}
+			finally
+			{
+			}
+		}
+
+		public void ExportHistorgramNoCatch()
+		{
+			Progress<int> prog = new Progress<int>( SetProgress );
+			CancellationTokenSource = new CancellationTokenSource();
+			CancellationToken ct = CancellationTokenSource.Token;
+			BusyIndicatorIsActive = true;
+			BusyIndicatorText = "Exporting Histogram";
+
+			ResultsWriteline( $"Launching task..." );
+			Task exportTask = PretendExportHistogram( prog, ct );
+			ResultsWriteline( "Task is running..." );
+
+			// now that it's all on background and exceptions are caught => no reason NOT to wait.
+			// furthermore, if you don't wait the busy indicator goes off before task completes.
+			if( NoWaitIsChecked )
+				return;
+
+			ResultsWriteline( "Waiting for Task to complete..." );
+			double factor = TimeoutIsChecked ? 0.25 : 1.25;
+			int expected = (int)( ExpectedRuntime_ms * factor );
+			var ok = exportTask.Wait( expected, ct );
+			ResultsWriteline( $"Task completes...{( ok ? "" : "Timeout" )}" );
+
+			if( !ok )
+			{
+				// Wait timed-out, not the task itself;
+				// Task is still running; so we need to snuff it
+				CancellationTokenSource.Cancel();
+			}
 		}
 
 		public void SetProgress( int progress )
@@ -214,6 +246,7 @@ namespace AsyncTracer
 
 					if( ThrowIsChecked && i > ThrowThreshold )
 					{
+						ResultsWriteline( "Throwing IndexOutOfRangeException..." );
 						throw new IndexOutOfRangeException( "burp" );
 					}
 
@@ -274,6 +307,20 @@ namespace AsyncTracer
 		{
 			get { return _ThrowIsChecked; }
 			set { OnPropertyChanged( ref _ThrowIsChecked, value ); }
+		}
+
+		public bool _NoCatchIsChecked;
+		public bool NoCatchIsChecked
+		{
+			get { return _NoCatchIsChecked; }
+			set { OnPropertyChanged( ref _NoCatchIsChecked, value ); }
+		}
+
+		public bool _NoWaitIsChecked;
+		public bool NoWaitIsChecked
+		{
+			get { return _NoWaitIsChecked; }
+			set { OnPropertyChanged( ref _NoWaitIsChecked, value ); }
 		}
 
 		public bool _TimeoutIsChecked;
