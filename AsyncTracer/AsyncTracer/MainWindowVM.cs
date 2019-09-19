@@ -74,14 +74,14 @@ namespace AsyncTracer
 
 		#endregion
 
+		public SettingsStandard SettingsStandard { get; protected set; }
+
 		public MainWindowVM( SettingsStandard settings )
 		{
 			SettingsStandard = settings;
 		}
 
-		#region // Settings and Events ////////////////////////////////////////
-
-		public SettingsStandard SettingsStandard { get; protected set; }
+		#region // Events /////////////////////////////////////////////////////
 
 		public event Action<bool> BusyIndicatorChanged;
 		protected void OnBusyIndicatorChanged( bool busy )
@@ -97,7 +97,7 @@ namespace AsyncTracer
 
 		#endregion
 
-		#region // Export Simulation //////////////////////////////////////////
+		#region // Export Command and Associated //////////////////////////////
 
 		private ICommand _ExportHistogramCommand;
 		public ICommand ExportHistogramCommand
@@ -109,7 +109,6 @@ namespace AsyncTracer
 						= new RelayCommand<bool>(
 							( wait ) => ExportHistorgram( wait ),
 							( wait ) => !BusyIndicatorIsActive ) );
-							//) );
 			}
 		}
 
@@ -205,27 +204,6 @@ namespace AsyncTracer
 			}
 		}
 
-		public void SetProgress( int progress )
-		{
-			switch( progress )
-			{
-			case -2:
-				AbortActionIsAllowed = false;
-				ResultsWriteline( "Export Canceled" );
-				return;
-			case -1:
-				AbortActionIsAllowed = false;
-				ResultsWriteline( "Export Complete" );
-				return;
-			case 0:
-				AbortActionIsAllowed = true;
-				ResultsWriteline( "Starting Export" );
-				break;
-			}
-
-			ProgressBarValue = (double)progress;
-		}
-
 		public const int Iterations = 100;
 		public const int Delay = 50;
 		public const int ExpectedRuntime_ms = Iterations * Delay;
@@ -235,6 +213,8 @@ namespace AsyncTracer
 		{
 			return Task.Run( () =>
 			{
+				IsRunningChecked = true;
+
 				for( int i = 0; i < Iterations; i++ )
 				{
 					if( token.IsCancellationRequested )
@@ -257,9 +237,34 @@ namespace AsyncTracer
 					Thread.Sleep( Delay );
 				}
 
-				prog.Report( -1 );
+				IsRunningChecked = false;
 			}, token );
 		}
+
+		public void SetProgress( int progress )
+		{
+			switch( progress )
+			{
+			case -2:
+				AbortActionIsAllowed = false;
+				ResultsWriteline( "Export Canceled" );
+				return;
+			case -1:
+				AbortActionIsAllowed = false;
+				ResultsWriteline( "Export Complete" );
+				return;
+			case 0:
+				AbortActionIsAllowed = true;
+				ResultsWriteline( "Starting Export" );
+				break;
+			}
+
+			ProgressBarValue = (double)progress;
+		}
+
+		#endregion
+
+		#region // Commands ///////////////////////////////////////////////////
 
 		private ICommand _AbortActionCommand;
 		public ICommand AbortActionCommand
@@ -300,6 +305,23 @@ namespace AsyncTracer
 		public void Ping()
 		{
 			ResultsWriteline( "Ping!" );
+		}
+
+		#endregion
+
+		#region // Checkboxes & Indicators ////////////////////////////////////
+
+		public bool _IsRunningChecked;
+		public bool IsRunningChecked
+		{
+			get { return _IsRunningChecked; }
+			set
+			{
+				if( OnPropertyChanged( ref _IsRunningChecked, value ) )
+				{
+
+				}
+			}
 		}
 
 		public bool _ThrowIsChecked;
@@ -360,7 +382,6 @@ namespace AsyncTracer
 			get { return _BusyIndicatorText; }
 			set { OnPropertyChanged( ref _BusyIndicatorText, value ); }
 		}
-
 
 		#endregion
 
