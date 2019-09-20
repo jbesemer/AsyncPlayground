@@ -34,7 +34,9 @@
 		<Grid.RowDefinitions>
 			<RowDefinition Height="auto"/>
 			<RowDefinition Height="auto"/>
+			<RowDefinition Height="auto"/>
 			<RowDefinition Height="*"/>
+			<RowDefinition Height="auto"/>
 		</Grid.RowDefinitions>
 		
 		<Grid.ContextMenu>
@@ -54,14 +56,14 @@
 				<MenuItem Header="Clear" Click="ClearMenuItem_Click"/>
 			</ContextMenu>
 		</Grid.ContextMenu>
-		
-		<WrapPanel Grid.Row="0" 
+
+		<WrapPanel Grid.Row="0" x:Name="Actions"
 				VerticalAlignment="Center">
 			<!-- FML: wrap panel won't align contents:
 			https://stackoverflow.com/questions/806777/wpf-how-can-i-center-all-items-in-a-wrappanel
 			https://docs.microsoft.com/en-us/previous-versions/ms771773(v=vs.100)?redirectedfrom=MSDN
 			-->
-			
+
 			<Button x:Name="startButton" 
 				Click="startButton_Click" 
 				IsEnabled="{Binding IsRunning,
@@ -76,6 +78,15 @@
 			<Button Command="{Binding ExportHistogramCommand}"
 				CommandParameter="{StaticResource True}"
 				Content="Export" 
+				VerticalAlignment="Center"
+				Margin="6,10" 
+				Padding="4,0"
+				MinWidth="80" 
+				Height="24" />
+
+			<Button Command="{Binding FireForgetCommand}"
+				CommandParameter="{StaticResource True}"
+				Content="Fire Forget" 
 				VerticalAlignment="Center"
 				Margin="6,10" 
 				Padding="4,0"
@@ -102,7 +113,11 @@
 				MinWidth="80" 
 				Height="24" />
 
-			<CheckBox Content="Throw"
+		</WrapPanel>
+
+		<WrapPanel Grid.Row="1"  x:Name="Options"
+				VerticalAlignment="Center">
+				<CheckBox Content="Throw"
 				IsChecked="{Binding ThrowIsChecked}"
 				IsEnabled="{Binding IsRunning,
 					Converter={StaticResource BooleanInverter}}"
@@ -143,11 +158,11 @@
 				Height="24" />
 		</WrapPanel>
 		
-		<ProgressBar Grid.Row="1" x:Name="progressBar" 
+		<ProgressBar Grid.Row="2" x:Name="progressBar" 
 				Value="{Binding ProgressBarValue, FallbackValue=50}"
 				Height="4" />
 
-		<TextBox Grid.Row="2" x:Name="resultsTextBox" 
+		<TextBox Grid.Row="3" x:Name="resultsTextBox" 
 				 VerticalAlignment="Stretch" 
 				 HorizontalAlignment="Stretch" 
 				 Background="Transparent"
@@ -164,6 +179,12 @@
 				</ContextMenu>
 			</TextBox.ContextMenu>
 		</TextBox>
+		
+		<StatusBar Grid.Row="4">
+			<StatusBarItem>
+				<TextBlock Text="{Binding StatusText}"/>
+			</StatusBarItem>
+		</StatusBar>
 
 		<!-- Busy Indicator (overlay to entire window) -->
 		<Border Grid.RowSpan="3"

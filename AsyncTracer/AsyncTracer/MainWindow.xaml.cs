@@ -1,4 +1,6 @@
-﻿using System;
+﻿#define REGISTER_UNHANDLED_EXCEPTIONS
+
+using System;
 using System.Diagnostics;
 using System.Collections.Generic;
 using System.Linq;
@@ -27,6 +29,8 @@ namespace AsyncTracer
 		public MainWindowVM MainWindowVM;
 		public SettingsStandard SettingsStandard;
 
+		#region // Constructor ////////////////////////////////////////////////
+
 		public MainWindow()
 		{
 			InitializeComponent();
@@ -36,18 +40,29 @@ namespace AsyncTracer
 			MainWindowVM.IsRunningChanged += IndicateBusy;
 			MainWindowVM.TraceWritten += ResultsWriteline;
 
+			RegisterUnhandledExceptions();
+		}
+
+		#endregion
+
+		#region // Unhandled Exceptions ///////////////////////////////////////
+
+		[Conditional( "REGISTER_UNHANDLED_EXCEPTIONS" )]
+		private void RegisterUnhandledExceptions()
+		{
+			// these crash the app if not caught //
+
 			AppDomain.CurrentDomain.UnhandledException
 				+= CurrentDomain_UnhandledException;
-
-			System.Threading.Tasks.TaskScheduler.UnobservedTaskException
-				+= TaskScheduler_UnobservedTaskException;
 
 			Application.Current.DispatcherUnhandledException
 				+= Current_DispatcherUnhandledException;
 
-		}
+			// these are ignored if not caught //
 
-		#region // Unhandled Exceptions ///////////////////////////////////////
+			System.Threading.Tasks.TaskScheduler.UnobservedTaskException
+				+= TaskScheduler_UnobservedTaskException;
+		}
 
 		private void Current_DispatcherUnhandledException( object sender, System.Windows.Threading.DispatcherUnhandledExceptionEventArgs e )
 		{
