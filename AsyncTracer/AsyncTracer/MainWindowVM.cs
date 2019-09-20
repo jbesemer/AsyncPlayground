@@ -22,58 +22,8 @@ using SharedLibrary.MVVM;
 
 namespace AsyncTracer
 {
-	public class MainWindowVM : INotifyPropertyChanged
+	public class MainWindowVM : ViewModelBase
 	{
-		#region // INotifyPropertyChanged /////////////////////////////////////
-
-		public event PropertyChangedEventHandler PropertyChanged;
-
-		protected void OnPropertyChangedNoTrace( String name )
-		{
-			PropertyChanged?.Invoke(
-					this,
-					new PropertyChangedEventArgs( name ) );
-		}
-
-		public void OnPropertyChanged( String name )
-		{
-			TracePropertyChange( "PropertyChanged: {0}", name );
-			OnPropertyChangedNoTrace( name );
-		}
-
-		protected void OnPropertyChanged( String name, string value )
-		{
-			TracePropertyChange( "PropertyChanged: {0} -> {1}", name, value );
-			OnPropertyChangedNoTrace( name );
-		}
-
-		public void OnPropertyChanged( String name, object value )
-		{
-			OnPropertyChanged( name, ValueToString( value ) );
-		}
-
-		// PropertyChanging ///////////////////////////////////////////
-
-		protected bool OnPropertyChanged<T>(
-				ref T value,
-				T newValue,
-				[CallerMemberName] string name = null,
-				bool trace = true )
-		{
-			if( Equals( value, newValue ) )
-				return false;       // unchanged
-
-			if( trace )
-				TracePropertyChanging( name, value, newValue );
-
-			value = newValue;
-			OnPropertyChangedNoTrace( name );
-
-			return true;    // changed
-		}
-
-		#endregion
-
 		public SettingsStandard SettingsStandard { get; protected set; }
 
 		public MainWindowVM( SettingsStandard settings )
@@ -97,7 +47,53 @@ namespace AsyncTracer
 
 		#endregion
 
+		// Shared Properties //////////////////////////////////////////
+
+		private CancellationTokenSource CancellationTokenSource;
+
+		#region // Fire Forget Command and Associated /////////////////////////
+
+		private ICommand _FireForgetCommand;
+		public ICommand FireForgetCommand
+		{
+			get
+			{
+				return _FireForgetCommand
+					?? ( _FireForgetCommand
+						= new RelayCommand(
+							() => FireForget(),
+							() => !IsRunning ) );
+			}
+		}
+
+		public void FireForget()
+		{
+			// these need to be created on UI thread
+			Progress<int> progress = new Progress<int>( SetProgress );
+			CancellationTokenSource = new CancellationTokenSource();
+			CancellationToken token = CancellationTokenSource.Token;
+
+			// start and detach worker thread
+			Task.Run( () => FireForgetAsync( progress, token ) );
+		}
+
+		public async Task FireForgetAsync( Progress<int> progress, CancellationToken ct )
+		{
+			try
+			{
+				await PretendExportHistogram( progress, ct );
+			}
+			catch( OperationCanceledException )
+			{
+				SetStatus( "Export Canceled" );
+			}
+		}
+
+		#endregion
+
 		#region // Export Command and Associated //////////////////////////////
+
+		// lots of knobs and switches for experimentation
 
 		private ICommand _ExportHistogramCommand;
 		public ICommand ExportHistogramCommand
@@ -111,8 +107,6 @@ namespace AsyncTracer
 							( wait ) => !IsRunning ) );
 			}
 		}
-
-		private CancellationTokenSource CancellationTokenSource;
 
 		public void ExportHistorgram( bool wait )
 		{
@@ -167,12 +161,12 @@ namespace AsyncTracer
 
 		public void ExportHistorgramNoCatch()
 		{
-			Progress<int> prog = new Progress<int>( SetProgress );
+			Progress<int> progress = new Progress<int>( SetProgress );
 			CancellationTokenSource = new CancellationTokenSource();
-			CancellationToken ct = CancellationTokenSource.Token;
+			CancellationToken token = CancellationTokenSource.Token;
 
-			ResultsWriteline( $"Launching task..." );
-			Task exportTask = PretendExportHistogram( prog, ct );
+			ResultsWriteline( $"\nLaunching task..." );
+			Task exportTask = PretendExportHistogram( progress, token );
 			ResultsWriteline( "Task is running..." );
 
 			// now that it's all on background and exceptions are caught => no reason NOT to wait.
@@ -183,7 +177,7 @@ namespace AsyncTracer
 			ResultsWriteline( "Waiting for Task to complete..." );
 			double factor = TimeoutIsChecked ? 0.25 : 1.25;
 			int expected = (int)( ExpectedRuntime_ms * factor );
-			var ok = exportTask.Wait( expected, ct );
+			var ok = exportTask.Wait( expected, token );
 			ResultsWriteline( $"Task completes...{( ok ? "" : "Timeout" )}" );
 
 			if( !ok )
@@ -194,16 +188,19 @@ namespace AsyncTracer
 			}
 		}
 
+		#endregion
+
+		#region // Core Histgogram Exporter ///////////////////////////////////
+
 		public const int Iterations = 100;
 		public const int Delay = 50;
 		public const int ExpectedRuntime_ms = Iterations * Delay;
 		public const int ThrowThreshold = 40;
 
-		public Task PretendExportHistogram( IProgress<int> prog, CancellationToken token )
+		public Task PretendExportHistogram( IProgress<int> progress, CancellationToken token )
 		{
 			return Task.Run( () =>
 			{
-				BusyIndicatorText = "Exporting Histogram";
 				IsRunning = true;
 
 				try
@@ -223,7 +220,7 @@ namespace AsyncTracer
 							throw new IndexOutOfRangeException( "burp" );
 						}
 
-						prog.Report( i );
+						progress.Report( i );
 
 						// Pretend work
 						//Task.Delay( 200 );
@@ -235,17 +232,6 @@ namespace AsyncTracer
 					IsRunning = false;
 				}
 			}, token );
-		}
-
-		public void SetProgress( int progress )
-		{
-			ProgressBarValue = (double)progress;
-		}
-
-		public void ExportCanceled()
-		{
-			ResultsWriteline( "Export Canceled" );
-			IsRunning = false;
 		}
 
 		#endregion
@@ -274,6 +260,7 @@ namespace AsyncTracer
 		public void AbortAction()
 		{
 			CancellationTokenSource.Cancel();
+			SetStatus( "Export Aborted" );
 		}
 
 		private ICommand _PingCommand;
@@ -308,15 +295,19 @@ namespace AsyncTracer
 					if( value )
 					{
 						AbortActionIsAllowed = true;
-						BusyIndicatorIsActive = true;
+						BusyIndicatorText = "Exporting Histogram";
+						//BusyIndicatorIsActive = true;
 						ResultsWriteline( "Starting Export" );
+						SetStatus( "Busy Exporting..." );
 					}
 					else
 					{
 						AbortActionIsAllowed = false;
-						BusyIndicatorIsActive = false;
+						//BusyIndicatorIsActive = false;
 						ResultsWriteline( "Export Complete" );
+						SetStatus();
 					}
+
 					OnIsRunningChanged( value );
 				}
 			}
@@ -374,39 +365,27 @@ namespace AsyncTracer
 			set { OnPropertyChanged( ref _BusyIndicatorText, value ); }
 		}
 
-		#endregion
-
-		#region // Trace and ValueToString ////////////////////////////////////
-
-		[Conditional( "TRACE" )]    // also turned-on in project Properties.Build
-		public static void Trace( string format, params object[] args )
+		public string _StatusText;
+		public string StatusText
 		{
-			Debug.WriteLine( string.Format( format, args ) );
+			get { return _StatusText; }
+			set { OnPropertyChanged( ref _StatusText, value ); }
 		}
 
-		[Conditional( "TRACE_PROPERTY_CHANGE" )]
-		public virtual void TracePropertyChange( string format, params object[] args )
+		public void SetStatus( string text = "" )
 		{
-#if !SUPPRESS_TRACE_PROPERTY_CHANGE
-			Debug.WriteLine( string.Format( format, args ) );
-#endif
+			StatusText = text;
 		}
 
-		[Conditional( "TRACE_PROPERTY_CHANGING" )]
-		public virtual void TracePropertyChanging( string name, object value, object newValue )
+		public void SetProgress( int progress )
 		{
-			Trace( "PropertyChanging {0}: {1} -> {2}",
-				name,
-				ValueToString( value ),
-				ValueToString( newValue ) );
+			ProgressBarValue = (double)progress;
 		}
 
-		public string ValueToString( object value )
+		public void ExportCanceled()
 		{
-			return
-				( value == null )
-					? "[null]"
-					: value.ToString();
+			ResultsWriteline( "Export Canceled" );
+			IsRunning = false;
 		}
 
 		#endregion
